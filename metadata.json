@@ -1,0 +1,6 @@
+{
+  "name": "Sinhala Subtitle Translator",
+  "description": "Translate English SRT subtitle files into natural Sri Lankan Sinhala using Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
