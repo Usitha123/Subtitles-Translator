@@ -1,22 +1,28 @@
 import React, { useState } from 'react';
-import { Download, Copy, Check, Layers, Globe, FileText, ShieldCheck } from 'lucide-react';
-import { SubtitleItem } from '../types';
-import { buildSRT, getSinhalaFileName } from '../utils/srt';
+import { Download, Copy, Check, Layers, Globe, FileText, Archive } from 'lucide-react';
+import { SubtitleItem, SubtitleQueueItem } from '../types';
+import { buildSRT, getSinhalaFileName, downloadQueueAsZip } from '../utils/srt';
 import { generateTranslationReport } from '../utils/qualityChecker';
 
 interface DownloadAreaProps {
   subtitles: SubtitleItem[];
   loadedFileName: string;
+  queueItems?: SubtitleQueueItem[];
 }
 
 export const DownloadArea: React.FC<DownloadAreaProps> = ({
   subtitles,
   loadedFileName,
+  queueItems = [],
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isZipping, setIsZipping] = useState(false);
 
   const completedCount = subtitles.filter((s) => s.translatedText?.trim()).length;
   const isHasTranslations = completedCount > 0;
+  const completedQueueCount = queueItems.filter(
+    (item) => item.subtitles.some((s) => s.translatedText?.trim())
+  ).length;
 
   const sinhalaFileName = getSinhalaFileName(loadedFileName);
   const reportFileName = loadedFileName
@@ -56,6 +62,16 @@ export const DownloadArea: React.FC<DownloadAreaProps> = ({
     triggerDownload(srtText, bilingualFileName);
   };
 
+  const handleDownloadAllZip = async () => {
+    if (completedQueueCount === 0) return;
+    setIsZipping(true);
+    try {
+      await downloadQueueAsZip(queueItems, 'sinhala-subtitles-bundle.zip');
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
   const handleCopyClipboard = () => {
     const srtText = buildSRT(subtitles, 'translated');
     navigator.clipboard.writeText(srtText);
@@ -75,25 +91,40 @@ export const DownloadArea: React.FC<DownloadAreaProps> = ({
           </p>
         </div>
 
-        {isHasTranslations && (
-          <button
-            type="button"
-            onClick={handleCopyClipboard}
-            className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto border border-slate-700/80"
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-bold">Copied to Clipboard!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-slate-400" />
-                <span>Copy SRT Content</span>
-              </>
-            )}
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {completedQueueCount > 1 && (
+            <button
+              type="button"
+              onClick={handleDownloadAllZip}
+              disabled={isZipping}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs flex items-center gap-1.5 transition-colors border border-emerald-500/30"
+              title="Download all completed translated subtitles in a single ZIP archive"
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>Download All ZIP ({completedQueueCount})</span>
+            </button>
+          )}
+
+          {isHasTranslations && (
+            <button
+              type="button"
+              onClick={handleCopyClipboard}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto border border-slate-700/80"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 font-bold">Copied to Clipboard!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Copy Active SRT</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -121,9 +152,9 @@ export const DownloadArea: React.FC<DownloadAreaProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               Standard Sinhala subtitle file. Reconstructs original SRT layout & timestamps.
             </p>
-            <p className="text-[11px] font-mono text-amber-400 mt-2 flex items-center gap-1 font-semibold">
-              <Download className="w-3 h-3" />
-              <span>{sinhalaFileName}</span>
+            <p className="text-[11px] font-mono text-amber-400 mt-2 flex items-center gap-1 font-semibold truncate max-w-[200px]">
+              <Download className="w-3 h-3 shrink-0" />
+              <span className="truncate">{sinhalaFileName}</span>
             </p>
           </div>
         </button>
@@ -152,9 +183,9 @@ export const DownloadArea: React.FC<DownloadAreaProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               Complete quality report detailing 10 checks, accuracy score, and flagged lines.
             </p>
-            <p className="text-[11px] font-mono text-emerald-400 mt-2 flex items-center gap-1 font-semibold">
-              <Download className="w-3 h-3" />
-              <span>{reportFileName}</span>
+            <p className="text-[11px] font-mono text-emerald-400 mt-2 flex items-center gap-1 font-semibold truncate max-w-[200px]">
+              <Download className="w-3 h-3 shrink-0" />
+              <span className="truncate">{reportFileName}</span>
             </p>
           </div>
         </button>
@@ -183,9 +214,9 @@ export const DownloadArea: React.FC<DownloadAreaProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               Dual language track combining original English lines and Sinhala translations.
             </p>
-            <p className="text-[11px] font-mono text-slate-400 mt-2 flex items-center gap-1">
-              <Download className="w-3 h-3" />
-              <span>{bilingualFileName}</span>
+            <p className="text-[11px] font-mono text-slate-400 mt-2 flex items-center gap-1 truncate max-w-[200px]">
+              <Download className="w-3 h-3 shrink-0" />
+              <span className="truncate">{bilingualFileName}</span>
             </p>
           </div>
         </button>

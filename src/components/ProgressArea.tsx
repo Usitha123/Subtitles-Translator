@@ -13,6 +13,10 @@ interface ProgressAreaProps {
   errorMessage?: string | null;
   subtitles?: SubtitleItem[];
   loadedFileName?: string;
+  queueFilesCount?: number;
+  completedFilesCount?: number;
+  currentQueueIndex?: number;
+  autoDownloadOnComplete?: boolean;
 }
 
 export const ProgressArea: React.FC<ProgressAreaProps> = ({
@@ -25,6 +29,10 @@ export const ProgressArea: React.FC<ProgressAreaProps> = ({
   errorMessage,
   subtitles = [],
   loadedFileName = '',
+  queueFilesCount = 0,
+  completedFilesCount = 0,
+  currentQueueIndex = 0,
+  autoDownloadOnComplete = true,
 }) => {
   const totalSubtitles = progress.totalItems;
   const translatedSubtitles = progress.completedItems;
@@ -111,7 +119,16 @@ export const ProgressArea: React.FC<ProgressAreaProps> = ({
                 }`}
               ></span>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <span>Translation Progress</span>
+                <span>
+                  {queueFilesCount > 1
+                    ? `Queue Progress (${currentQueueIndex + 1}/${queueFilesCount})`
+                    : 'Translation Progress'}
+                </span>
+                {loadedFileName && (
+                  <span className="text-[10px] font-mono text-slate-400 font-normal truncate max-w-[180px]">
+                    • {loadedFileName}
+                  </span>
+                )}
                 {progress.retryInfo && (
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
                     Retry {progress.retryInfo.retryAttempt}/{progress.retryInfo.maxRetries}
@@ -119,23 +136,30 @@ export const ProgressArea: React.FC<ProgressAreaProps> = ({
                 )}
               </h3>
             </div>
-            <p className="text-xs font-medium text-slate-300 mt-1">
-              <span className="text-slate-400">Status: </span>
-              <span
-                className={
-                  progress.retryInfo
-                    ? 'text-amber-300 font-bold'
-                    : progress.isTranslating
-                    ? 'text-amber-400 font-bold'
-                    : isCompleted
-                    ? 'text-emerald-400 font-bold'
-                    : failedBatchNum
-                    ? 'text-red-400 font-bold'
-                    : 'text-slate-200 font-medium'
-                }
-              >
-                {getStatusText()}
+            <p className="text-xs font-medium text-slate-300 mt-1 flex flex-wrap items-center gap-x-2">
+              <span>
+                <span className="text-slate-400">Status: </span>
+                <span
+                  className={
+                    progress.retryInfo
+                      ? 'text-amber-300 font-bold'
+                      : progress.isTranslating
+                      ? 'text-amber-400 font-bold'
+                      : isCompleted
+                      ? 'text-emerald-400 font-bold'
+                      : failedBatchNum
+                      ? 'text-red-400 font-bold'
+                      : 'text-slate-200 font-medium'
+                  }
+                >
+                  {getStatusText()}
+                </span>
               </span>
+              {autoDownloadOnComplete && isCompleted && (
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  ⚡ Auto-Downloaded .si.srt
+                </span>
+              )}
             </p>
           </div>
 

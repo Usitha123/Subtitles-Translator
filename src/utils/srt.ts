@@ -1,4 +1,55 @@
-import { SubtitleItem } from '../types';
+import JSZip from 'jszip';
+import { SubtitleItem, SubtitleQueueItem } from '../types';
+
+/**
+ * Triggers a client-side file download with UTF-8 BOM for Sinhala Unicode compatibility
+ */
+export function downloadSRTFile(content: string, filename: string): void {
+  const utf8Content = content.startsWith('\uFEFF') ? content : '\uFEFF' + content;
+  const blob = new Blob([utf8Content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Packages all completed Sinhala subtitle files in the queue into a single ZIP archive and triggers download
+ */
+export async function downloadQueueAsZip(
+  items: SubtitleQueueItem[],
+  zipName: string = 'sinhala-subtitles-bundle.zip'
+): Promise<boolean> {
+  const completedItems = items.filter(
+    (item) => item.subtitles.length > 0 && item.subtitles.some((s) => s.translatedText?.trim())
+  );
+
+  if (completedItems.length === 0) return false;
+
+  const zip = new JSZip();
+
+  for (const item of completedItems) {
+    const srtText = buildSRT(item.subtitles, 'translated');
+    const utf8Content = srtText.startsWith('\uFEFF') ? srtText : '\uFEFF' + srtText;
+    const outputFilename = getSinhalaFileName(item.fileName);
+    zip.file(outputFilename, utf8Content);
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = zipName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  return true;
+}
 
 /**
  * Parses an SRT string into structured SubtitleItem objects

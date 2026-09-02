@@ -59,10 +59,30 @@ export interface BatchTranslateRequest {
   };
 }
 
-export interface BatchTranslateResponse {
-  results: {
-    id: number;
-    translatedText: string;
-  }[];
-  error?: string;
+export interface SubtitleQueueItem {
+  id: string;
+  fileName: string;
+  fileSize?: number;
+  subtitles: SubtitleItem[];
+  status: 'queued' | 'translating' | 'completed' | 'error' | 'paused';
+  completedCount: number;
+  totalCount: number;
+  errorMessage?: string | null;
+  downloaded: boolean;
+  autoDownloaded?: boolean;
+  currentBatchIndex?: number;
+  totalBatches?: number;
+  retryInfo?: RetryInfo | null;
+  failedBatchIndex?: number | null;
+  startTime?: number | null;
+  endTime?: number | null;
+}
+
+export interface QueueProgress {
+  totalFiles: number;
+  completedFiles: number;
+  translatingFileIndex: number;
+  isQueueRunning: boolean;
+  isPaused: boolean;
+  autoDownloadOnComplete: boolean;
 }

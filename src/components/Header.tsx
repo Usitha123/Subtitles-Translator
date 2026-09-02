@@ -5,12 +5,16 @@ interface HeaderProps {
   hasApiKey: boolean | null;
   totalSubtitlesCount: number;
   completedCount: number;
+  queueFilesCount?: number;
+  completedFilesCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   hasApiKey,
   totalSubtitlesCount,
   completedCount,
+  queueFilesCount = 0,
+  completedFilesCount = 0,
 }) => {
   return (
     <nav className="flex items-center justify-between px-6 py-3.5 border-b border-slate-800 bg-[#111114] shrink-0 sticky top-0 z-50">
@@ -30,11 +34,20 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right Controls & Indicators */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {queueFilesCount > 1 && (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 text-xs font-mono">
+            <span className="text-amber-400/80">Queue:</span>
+            <span className="font-bold text-amber-400">
+              {completedFilesCount} / {queueFilesCount} Files
+            </span>
+          </div>
+        )}
+
         {totalSubtitlesCount > 0 && (
           <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-900 rounded-lg border border-slate-800 text-xs font-mono">
-            <span className="text-slate-400">Translated:</span>
-            <span className="font-bold text-amber-500">
+            <span className="text-slate-400">Lines:</span>
+            <span className="font-bold text-slate-200">
               {completedCount} / {totalSubtitlesCount}
             </span>
           </div>
