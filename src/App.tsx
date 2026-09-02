@@ -290,10 +290,34 @@ export default function App() {
               body: JSON.stringify(payload),
             });
 
-            const data = await response.json();
+            const rawText = await response.text();
+            let data: any = {};
+            let isJson = true;
 
-            if (!response.ok || data.error) {
-              let errStr = data.error || `HTTP ${response.status}: Failed to translate batch`;
+            try {
+              data = JSON.parse(rawText);
+            } catch {
+              isJson = false;
+            }
+
+            if (!response.ok || data.error || !isJson) {
+              let errStr = '';
+
+              if (data?.error) {
+                errStr = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+              } else if (!isJson) {
+                if (response.status === 404) {
+                  errStr =
+                    'API endpoint /api/translate not found (404). If deployed on Vercel, please check your Vercel deployment has GEMINI_API_KEY set in Environment Variables.';
+                } else {
+                  // Clean up HTML tags if returned by web server
+                  const stripped = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                  errStr = `Server error (HTTP ${response.status}): ${stripped.slice(0, 150) || 'Invalid server response'}`;
+                }
+              } else {
+                errStr = `HTTP ${response.status}: Failed to translate batch`;
+              }
+
               // Format raw JSON error messages if any
               if (typeof errStr === 'string' && errStr.startsWith('{')) {
                 try {
@@ -311,8 +335,18 @@ export default function App() {
 
               if (isAuthError) {
                 lastErrorMsg =
-                  'Gemini API authentication failed. Please verify your GEMINI_API_KEY in Settings > Secrets.';
+                  'Gemini API authentication failed. Please verify your GEMINI_API_KEY in Settings > Secrets (or Vercel Environment Variables).';
                 throw new Error(lastErrorMsg);
+              }
+
+              const isFatal =
+                response.status === 404 ||
+                response.status === 405 ||
+                /not found|method not allowed/i.test(errStr);
+
+              if (isFatal) {
+                lastErrorMsg = errStr;
+                throw new Error(errStr);
               }
 
               const isTemporaryIssue =
@@ -332,7 +366,7 @@ export default function App() {
                 if (matchSecs && matchSecs[1]) {
                   parsedSecs = Math.ceil(parseFloat(matchSecs[1])) + 1;
                 }
-                const waitSecs = data.retryAfterSeconds
+                const waitSecs = data?.retryAfterSeconds
                   ? Math.max(data.retryAfterSeconds, parsedSecs)
                   : parsedSecs;
 
